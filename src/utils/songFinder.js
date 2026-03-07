@@ -74,7 +74,7 @@ export function formatShow(show, highlightSet = null) {
     return raw;
   });
 
-  const setlist = setlistParts.join(' · ');
+  const setlist = setlistParts.join('\n');
 
   const recLinks = (show.recordings || [])
     .map((r, i) => `[[${i + 1}]](${r.url})`)
