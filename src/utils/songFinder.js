@@ -84,7 +84,7 @@ export function formatShow(show, highlightSet = null) {
   return { setlist, recordings };
 }
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 export function paginateResults(results, page) {
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
