@@ -12,19 +12,10 @@ export const data = new SlashCommandBuilder()
   .setName('find')
   .setDescription('Find shows containing selected songs')
   .addStringOption(opt =>
-    opt.setName('song1').setDescription('First song to search for').setRequired(true).setAutocomplete(true)
-  )
-  .addStringOption(opt =>
-    opt.setName('song2').setDescription('Second song').setRequired(false).setAutocomplete(true)
-  )
-  .addStringOption(opt =>
-    opt.setName('song3').setDescription('Third song').setRequired(false).setAutocomplete(true)
-  )
-  .addStringOption(opt =>
-    opt.setName('song4').setDescription('Fourth song').setRequired(false).setAutocomplete(true)
-  )
-  .addStringOption(opt =>
-    opt.setName('song5').setDescription('Fifth song').setRequired(false).setAutocomplete(true)
+    opt.setName('songs')
+      .setDescription('Songs to search for, comma-separated (e.g. "gathering storm, moya")')
+      .setRequired(true)
+      .setAutocomplete(true)
   )
   .addStringOption(opt =>
     opt.setName('mode')
@@ -51,25 +42,36 @@ export const data = new SlashCommandBuilder()
 
 export async function autocomplete(interaction) {
   const focused = interaction.options.getFocused(true);
-  const value = focused.value.toLowerCase();
-  const songs = await getCanonicalSongs();
-  const filtered = value
-    ? songs.filter(s => s.includes(value)).slice(0, 25)
-    : songs.slice(0, 25);
-  await interaction.respond(filtered.map(s => ({ name: s, value: s })));
+  const fullValue = focused.value;
+
+  // Autocomplete the last token in a comma-separated list
+  const parts = fullValue.split(',');
+  const prefix = parts.slice(0, -1).map(p => p.trim()).join(', ');
+  const currentToken = parts[parts.length - 1].trim().toLowerCase();
+
+  const allSongs = await getCanonicalSongs();
+  const already = new Set(parts.slice(0, -1).map(p => normalizeSong(p.trim())).filter(Boolean));
+
+  const filtered = allSongs
+    .filter(s => !already.has(s) && (!currentToken || s.includes(currentToken)))
+    .slice(0, 25);
+
+  await interaction.respond(filtered.map(s => {
+    const value = prefix ? `${prefix}, ${s}` : s;
+    return { name: value.length > 100 ? s : value, value: value.length > 100 ? s : value };
+  }));
 }
 
 export async function execute(interaction) {
   await interaction.deferReply();
 
-  const songArgs = ['song1', 'song2', 'song3', 'song4', 'song5']
-    .map(k => interaction.options.getString(k))
-    .filter(Boolean)
-    .map(normalizeSong)
+  const raw = interaction.options.getString('songs');
+  const songArgs = raw.split(',')
+    .map(s => normalizeSong(s.trim()))
     .filter(Boolean);
 
   if (songArgs.length === 0) {
-    await interaction.editReply('Please provide at least one song.');
+    await interaction.editReply('No recognised songs found. Use `/songs` to browse available song names.');
     return;
   }
 
@@ -143,7 +145,6 @@ function buildEmbed(results, songArgs, highlightSet, mode, order, page) {
 }
 
 function buildRow(page, totalPages, songArgs, mode, order, recordingsOnly) {
-  const base = `find_${mode}_${order}_${recordingsOnly ? 1 : 0}_${songArgs.join('|')}`;
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`find_${page - 1}_${mode}_${order}_${recordingsOnly ? 1 : 0}_${songArgs.join('|')}`)
