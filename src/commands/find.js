@@ -128,7 +128,8 @@ function buildEmbed(results, songArgs, highlightSet, mode, order, page) {
     .setTitle(`Song Finder — ${results.length} show${results.length !== 1 ? 's' : ''} found`)
     .setDescription(
       `Query: **${songArgs.join(', ')}**  ·  mode: \`${mode}\`  ·  order: \`${order}\`` +
-      (totalPages > 1 ? `\nPage ${currentPage + 1} of ${totalPages}` : '')
+      (totalPages > 1 ? `\nPage ${currentPage + 1} of ${totalPages}` : '') +
+      `\n[Visit gyberecordinghelper.com for more features](https://gyberecordinghelper.com)`
     );
 
   for (const show of slice) {
