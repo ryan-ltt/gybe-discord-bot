@@ -102,7 +102,7 @@ export async function handleButton(interaction, parts) {
   const mode = parts[2];
   const order = parts[3];
   const recordingsOnly = parts[4] === '1';
-  const songArgs = parts.slice(5);
+  const songArgs = parts.slice(5).join('_').split('|');
   const highlightSet = new Set(songArgs);
 
   await interaction.deferUpdate();
