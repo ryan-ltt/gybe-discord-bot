@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 
 const LISTENING_PARTY_CHANNEL = 'listening-party';
 
@@ -10,12 +10,12 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   if (interaction.channel.name !== LISTENING_PARTY_CHANNEL) {
-    await interaction.reply({ content: `This command can only be used in #${LISTENING_PARTY_CHANNEL}.`, ephemeral: true });
+    await interaction.reply({ content: `This command can only be used in #${LISTENING_PARTY_CHANNEL}.`, flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (running) {
-    await interaction.reply({ content: 'A countdown is already running!', ephemeral: true });
+    await interaction.reply({ content: 'A countdown is already running!', flags: MessageFlags.Ephemeral });
     return;
   }
 
