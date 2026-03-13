@@ -5,6 +5,7 @@ import * as find from './commands/find.js';
 import * as songs from './commands/songs.js';
 import * as setlist from './commands/setlist.js';
 import * as random from './commands/random.js';
+import * as countdown from './commands/countdown.js';
 import { getTodaysTarget, pickNewTarget } from './utils/dailyTarget.js';
 
 const CLUELESS_EMOJI = '537217074745966593';
@@ -14,6 +15,7 @@ const commands = new Collection([
   ['songs', songs],
   ['setlist', setlist],
   ['random', random],
+  ['countdown', countdown],
 ]);
 
 const client = new Client({
