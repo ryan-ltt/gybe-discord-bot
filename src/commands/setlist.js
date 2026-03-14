@@ -30,7 +30,7 @@ export async function execute(interaction) {
 
   const { setlist, recordings } = formatShow(show);
   const lines = [setlist];
-  if (recordings) lines.push(recordings);
+  if (recordings) lines.push(`\n${recordings}`);
   if (show.note) lines.push(`*${show.note}*`);
 
   const embed = new EmbedBuilder()
