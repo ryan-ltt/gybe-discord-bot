@@ -3,7 +3,7 @@ import { getSetlists, getCanonicalSongs, normalizeSong } from '../data/setlists.
 
 export const data = new SlashCommandBuilder()
   .setName('search')
-  .setDescription('See the last time a song was played')
+  .setDescription('See the first and last time a song was played')
   .addStringOption(opt =>
     opt.setName('song')
       .setDescription('Song name')
@@ -44,18 +44,24 @@ export async function execute(interaction) {
   }
 
   const last = matching[0];
-  const recLinks = (last.recordings || [])
-    .map((r, i) => `[[${i + 1}]](${r.url})`)
-    .join(' ');
+  const first = matching[matching.length - 1];
+
+  const formatShow = (show) => {
+    const recLinks = (show.recordings || [])
+      .map((r, i) => `[[${i + 1}]](${r.url})`)
+      .join(' ');
+    return `**${show.date}**  ·  ${show.venue}` +
+      (recLinks ? `\nrecordings: ${recLinks}` : '') +
+      (show.note ? `\n*${show.note}*` : '');
+  };
 
   const embed = new EmbedBuilder()
     .setColor(0x4a90d9)
-    .setTitle(`Last time **${canon}** was played`)
-    .setDescription(
-      `**${last.date}**  ·  ${last.venue}` +
-      (recLinks ? `\nrecordings: ${recLinks}` : '') +
-      (last.note ? `\n*${last.note}*` : '') +
-      `\n\nPlayed in ${matching.length} show${matching.length !== 1 ? 's' : ''} total`
+    .setTitle(canon)
+    .addFields(
+      { name: 'First played', value: formatShow(first) },
+      { name: 'Last played', value: formatShow(last) },
+      { name: 'Total shows', value: `${matching.length}` },
     );
 
   await interaction.editReply({ embeds: [embed] });
