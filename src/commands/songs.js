@@ -75,17 +75,21 @@ export async function handleButton(interaction, parts) {
   const sort = parts[2] || 'alpha';
   const search = parts.slice(3).join('_');
 
-  await interaction.deferUpdate();
-  const allSongs = await getCanonicalSongs();
-  const filtered = search ? allSongs.filter(s => s.includes(search)) : allSongs;
+  try {
+    await interaction.deferUpdate();
+    const allSongs = await getCanonicalSongs();
+    const filtered = search ? allSongs.filter(s => s.includes(search)) : allSongs;
 
-  const counts = sort !== 'alpha' ? await getSongCounts() : null;
-  const sorted = sortSongs(filtered, sort, counts);
+    const counts = sort !== 'alpha' ? await getSongCounts() : null;
+    const sorted = sortSongs(filtered, sort, counts);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const embed = buildEmbed(sorted, search, sort, counts, page, totalPages);
-  const components = buildComponents(page, totalPages, search, sort);
-  await interaction.editReply({ embeds: [embed], components });
+    const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+    const embed = buildEmbed(sorted, search, sort, counts, page, totalPages);
+    const components = buildComponents(page, totalPages, search, sort);
+    await interaction.editReply({ embeds: [embed], components });
+  } catch (err) {
+    console.error('songs handleButton error:', err);
+  }
 }
 
 function formatLine(song, counts) {
