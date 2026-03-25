@@ -17,7 +17,7 @@ const commands = new Collection([
   ['setlist', setlist],
   ['random', random],
   ['countdown', countdown],
-  ['seen', seen],
+  ['search', seen],
 ]);
 
 const client = new Client({
