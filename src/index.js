@@ -68,7 +68,7 @@ client.on(Events.InteractionCreate, async interaction => {
       const cmdName = parts[0];
       if (cmdName === 'find') {
         await find.handleButton(interaction, parts);
-      } else if (cmdName === 'songs') {
+      } else if (cmdName === 'songs' || cmdName === 'songssort') {
         await songs.handleButton(interaction, parts);
       }
       return;

@@ -144,17 +144,17 @@ function buildSortRow(currentSort, search) {
   const s = search || '';
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`songs_0_alpha_${s}`)
+      .setCustomId(`songssort_0_alpha_${s}`)
       .setLabel('A–Z')
       .setStyle(currentSort === 'alpha' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(currentSort === 'alpha'),
     new ButtonBuilder()
-      .setCustomId(`songs_0_most_${s}`)
+      .setCustomId(`songssort_0_most_${s}`)
       .setLabel('Most played')
       .setStyle(currentSort === 'most' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(currentSort === 'most'),
     new ButtonBuilder()
-      .setCustomId(`songs_0_least_${s}`)
+      .setCustomId(`songssort_0_least_${s}`)
       .setLabel('Least played')
       .setStyle(currentSort === 'least' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(currentSort === 'least'),
