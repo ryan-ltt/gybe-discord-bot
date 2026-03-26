@@ -21,22 +21,24 @@ export async function execute(interaction) {
   }
 
   const shows = await getSetlists();
-  const show = shows.find(s => s.date === date);
+  const matching = shows.filter(s => s.date === date || s.date.startsWith(date));
 
-  if (!show) {
+  if (matching.length === 0) {
     await interaction.editReply(`No show found for **${date}**.`);
     return;
   }
 
-  const { setlist, recordings } = formatShow(show);
-  const lines = [setlist];
-  if (recordings) lines.push(`\n${recordings}`);
-  if (show.note) lines.push(`*${show.note}*`);
+  const embeds = matching.map(show => {
+    const { setlist, recordings } = formatShow(show);
+    const lines = [setlist];
+    if (recordings) lines.push(`\n${recordings}`);
+    if (show.note) lines.push(`*${show.note}*`);
 
-  const embed = new EmbedBuilder()
-    .setColor(0x4a90d9)
-    .setTitle(`${show.date}  ·  ${show.venue}`)
-    .setDescription(lines.join('\n').slice(0, 4096));
+    return new EmbedBuilder()
+      .setColor(0x4a90d9)
+      .setTitle(`${show.date}  ·  ${show.venue}`)
+      .setDescription(lines.join('\n').slice(0, 4096));
+  });
 
-  await interaction.editReply({ embeds: [embed] });
+  await interaction.editReply({ embeds });
 }
