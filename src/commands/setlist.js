@@ -24,7 +24,12 @@ export async function execute(interaction) {
   const matching = shows.filter(s => s.date === date || s.date.startsWith(date));
 
   if (matching.length === 0) {
-    await interaction.editReply(`No show found for **${date}**.`);
+    await interaction.editReply('No show played on this date.');
+    return;
+  }
+
+  if (matching.every(s => !s.songs || s.songs.length === 0)) {
+    await interaction.editReply('No setlist available for this show.');
     return;
   }
 
