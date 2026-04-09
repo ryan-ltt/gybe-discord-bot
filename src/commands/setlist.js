@@ -42,7 +42,7 @@ export async function execute(interaction) {
     return new EmbedBuilder()
       .setColor(0x4a90d9)
       .setTitle(`${show.date}  ·  ${show.venue}`)
-      .setDescription(lines.join('\n').slice(0, 4096));
+      .setDescription(lines.join('\n').slice(0, 4096) || null);
   });
 
   await interaction.editReply({ embeds });
