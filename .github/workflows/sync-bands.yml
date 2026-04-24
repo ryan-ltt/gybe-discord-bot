@@ -1,0 +1,85 @@
+name: Sync bands
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 4AM EST (UTC-5), needs to be after the daily recording helper cron
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Check for new bands and patch command files
+        id: patch
+        run: |
+          node --input-type=module << 'EOF'
+          import { readFileSync, writeFileSync } from 'fs';
+
+          const res = await fetch('https://gyberecordinghelper.com/bands.json');
+          const { bands } = await res.json();
+
+          // Read current choices out of setlist.js
+          const setlistSrc = readFileSync('src/commands/setlist.js', 'utf8');
+          const existingSlugs = new Set(
+            [...setlistSrc.matchAll(/value: '([^']+)'/g)].map(m => m[1])
+          );
+
+          const newBands = bands.filter(b => !existingSlugs.has(b.slug));
+          if (newBands.length === 0) {
+            console.log('No new bands found.');
+            process.exit(0);
+          }
+
+          console.log('New bands:', newBands.map(b => b.name).join(', '));
+
+          // Replace the entire addChoices block for the band option in both command files.
+          // Regenerating from the full bands list avoids any anchor fragility.
+          const allChoices = bands
+            .map(b => `        { name: '${b.name}', value: '${b.slug}' },`)
+            .join('\n');
+
+          const choicesBlock = `      .addChoices(\n${allChoices}\n      )`;
+
+          for (const file of ['src/commands/setlist.js', 'src/commands/random.js']) {
+            const src = readFileSync(file, 'utf8');
+            const patched = src.replace(
+              /\.addChoices\(\s*(?:\{ name: '[^']+', value: '[^']+' \},?\s*)+\)/,
+              choicesBlock
+            );
+            if (patched === src) {
+              console.error(`Could not patch ${file} — addChoices block not found`);
+              process.exit(1);
+            }
+            writeFileSync(file, patched);
+          }
+
+          writeFileSync('/tmp/new_bands.txt', newBands.map(b => b.name).join(', '));
+          EOF
+
+      - name: Deploy updated slash commands to Discord
+        if: ${{ hashFiles('/tmp/new_bands.txt') != '' }}
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        run: node deploy-commands.js
+
+      - name: Commit and push
+        if: ${{ hashFiles('/tmp/new_bands.txt') != '' }}
+        run: |
+          NEW_BANDS=$(cat /tmp/new_bands.txt)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/commands/setlist.js src/commands/random.js
+          git commit -m "Add new band(s): ${NEW_BANDS}"
+          git push
