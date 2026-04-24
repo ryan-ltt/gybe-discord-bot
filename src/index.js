@@ -36,7 +36,7 @@ let todaysTargetId = null;
 client.once(Events.ClientReady, async c => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
 
-  const guild = await client.guilds.fetch(process.env.GUILD_ID);
+  const guild = await client.guilds.fetch(process.env.HOME_GUILD_ID);
   todaysTargetId = await getTodaysTarget(guild);
 
   // Reset daily at midnight Toronto time (America/Toronto handles EST/EDT automatically)
