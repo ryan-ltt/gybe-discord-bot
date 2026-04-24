@@ -9,13 +9,24 @@ export const data = new SlashCommandBuilder()
     opt.setName('recordings_only')
       .setDescription('Only pick from shows with archive.org recordings')
       .setRequired(false)
+  )
+  .addStringOption(opt =>
+    opt.setName('band')
+      .setDescription('Band (default: Godspeed You! Black Emperor)')
+      .setRequired(false)
+      .addChoices(
+        { name: 'Godspeed You! Black Emperor', value: 'gybe' },
+        { name: 'A Silver Mt. Zion', value: 'a-silver-mt-zion' },
+        { name: 'Esmerine', value: 'esmerine' },
+      )
   );
 
 export async function execute(interaction) {
   await interaction.deferReply();
   const recordingsOnly = interaction.options.getBoolean('recordings_only') || false;
+  const band = interaction.options.getString('band') || 'gybe';
 
-  const shows = await getSetlists();
+  const shows = await getSetlists(band);
   let pool = recordingsOnly ? shows.filter(s => s.recordings && s.recordings.length > 0) : shows;
 
   if (pool.length === 0) {

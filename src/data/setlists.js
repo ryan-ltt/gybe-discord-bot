@@ -1,16 +1,32 @@
-const SETLISTS_URL = 'https://gyberecordinghelper.com/setlists.json';
+const BASE_URL = 'https://gyberecordinghelper.com';
 const TTL = 6 * 60 * 60 * 1000; // 6 hours
 
-let cache = null;
-let lastFetch = 0;
+let bandsCache = null;
+let bandsCacheTime = 0;
+const showsCache = new Map(); // slug → { data, fetchedAt }
 
-export async function getSetlists() {
-  if (cache && Date.now() - lastFetch < TTL) return cache;
-  const res = await fetch(SETLISTS_URL);
-  if (!res.ok) throw new Error(`Failed to fetch setlists: ${res.status}`);
-  cache = await res.json();
-  lastFetch = Date.now();
-  return cache;
+export async function getBands() {
+  if (bandsCache && Date.now() - bandsCacheTime < TTL) return bandsCache;
+  const res = await fetch(`${BASE_URL}/bands.json`);
+  if (!res.ok) throw new Error(`Failed to fetch bands: ${res.status}`);
+  bandsCache = (await res.json()).bands;
+  bandsCacheTime = Date.now();
+  return bandsCache;
+}
+
+export async function getSetlists(slug = 'gybe') {
+  const entry = showsCache.get(slug);
+  if (entry && Date.now() - entry.fetchedAt < TTL) return entry.data;
+
+  const bands = await getBands();
+  const band = bands.find(b => b.slug === slug);
+  if (!band) throw new Error(`Unknown band slug: ${slug}`);
+
+  const res = await fetch(`${BASE_URL}/${band.data_file}`);
+  if (!res.ok) throw new Error(`Failed to fetch setlists for ${slug}: ${res.status}`);
+  const data = await res.json();
+  showsCache.set(slug, { data, fetchedAt: Date.now() });
+  return data;
 }
 
 export async function getCanonicalSongs() {

@@ -9,18 +9,29 @@ export const data = new SlashCommandBuilder()
     opt.setName('date')
       .setDescription('Show date in YYYY-MM-DD format')
       .setRequired(true)
+  )
+  .addStringOption(opt =>
+    opt.setName('band')
+      .setDescription('Band (default: Godspeed You! Black Emperor)')
+      .setRequired(false)
+      .addChoices(
+        { name: 'Godspeed You! Black Emperor', value: 'gybe' },
+        { name: 'A Silver Mt. Zion', value: 'a-silver-mt-zion' },
+        { name: 'Esmerine', value: 'esmerine' },
+      )
   );
 
 export async function execute(interaction) {
   await interaction.deferReply();
   const date = interaction.options.getString('date').trim();
+  const band = interaction.options.getString('band') || 'gybe';
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     await interaction.editReply('Please provide a date in YYYY-MM-DD format (e.g. `1997-10-05`).');
     return;
   }
 
-  const shows = await getSetlists();
+  const shows = await getSetlists(band);
   const matching = shows.filter(s => s.date === date || s.date.startsWith(date));
 
   if (matching.length === 0) {
