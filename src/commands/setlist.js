@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getSetlists } from '../data/setlists.js';
+import { getSetlists, getBands } from '../data/setlists.js';
 import { formatShow } from '../utils/songFinder.js';
 
 export const data = new SlashCommandBuilder()
@@ -31,7 +31,8 @@ export async function execute(interaction) {
     return;
   }
 
-  const shows = await getSetlists(band);
+  const [shows, bands] = await Promise.all([getSetlists(band), getBands()]);
+  const bandName = band !== 'gybe' ? bands.find(b => b.slug === band)?.name : null;
   const matching = shows.filter(s => s.date === date || s.date.startsWith(date));
 
   if (matching.length === 0) {
@@ -50,10 +51,12 @@ export async function execute(interaction) {
     if (recordings) lines.push(`\n${recordings}`);
     if (show.note) lines.push(`*${show.note}*`);
 
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
       .setColor(0x4a90d9)
       .setTitle(`${show.date}  ·  ${show.venue}`)
       .setDescription(lines.join('\n').slice(0, 4096) || null);
+    if (bandName) embed.setAuthor({ name: bandName });
+    return embed;
   });
 
   await interaction.editReply({ embeds });
