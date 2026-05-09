@@ -14,12 +14,18 @@ export const data = new SlashCommandBuilder()
     opt.setName('band')
       .setDescription('Band (default: Godspeed You! Black Emperor)')
       .setRequired(false)
-      .addChoices(
-        { name: 'Godspeed You! Black Emperor', value: 'gybe' },
-        { name: 'A Silver Mt. Zion', value: 'a-silver-mt-zion' },
-        { name: 'Esmerine', value: 'esmerine' },
-      )
+      .setAutocomplete(true)
   );
+
+export async function autocomplete(interaction) {
+  const focused = interaction.options.getFocused().toLowerCase();
+  const bands = await getBands();
+  const choices = bands
+    .filter(b => b.name.toLowerCase().includes(focused))
+    .slice(0, 25)
+    .map(b => ({ name: b.name, value: b.slug }));
+  await interaction.respond(choices);
+}
 
 export async function execute(interaction) {
   await interaction.deferReply();
