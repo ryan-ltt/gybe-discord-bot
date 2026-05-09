@@ -14,12 +14,18 @@ export const data = new SlashCommandBuilder()
     opt.setName('band')
       .setDescription('Band (default: Godspeed You! Black Emperor)')
       .setRequired(false)
-      .addChoices(
-        { name: 'Godspeed You! Black Emperor', value: 'gybe' },
-        { name: 'A Silver Mt. Zion', value: 'a-silver-mt-zion' },
-        { name: 'Esmerine', value: 'esmerine' },
-      )
+      .setAutocomplete(true)
   );
+
+export async function autocomplete(interaction) {
+  const focused = interaction.options.getFocused().toLowerCase();
+  const bands = await getBands();
+  const choices = bands
+    .filter(b => b.name.toLowerCase().includes(focused))
+    .slice(0, 25)
+    .map(b => ({ name: b.name, value: b.slug }));
+  await interaction.respond(choices);
+}
 
 export async function execute(interaction) {
   await interaction.deferReply();
@@ -28,7 +34,8 @@ export async function execute(interaction) {
 
   const [shows, bands] = await Promise.all([getSetlists(band), getBands()]);
   const bandName = band !== 'gybe' ? bands.find(b => b.slug === band)?.name : null;
-  let pool = recordingsOnly ? shows.filter(s => s.recordings && s.recordings.length > 0) : shows;
+  let pool = shows.filter(s => s.songs && s.songs.length > 0);
+  if (recordingsOnly) pool = pool.filter(s => s.recordings && s.recordings.length > 0);
 
   if (pool.length === 0) {
     await interaction.editReply('No shows found matching your criteria.');

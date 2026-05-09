@@ -1,6 +1,6 @@
 # gybe-discord-bot
 
-Discord bot for querying Godspeed You! Black Emperor setlists, powered by [gyberecordinghelper.com](https://gyberecordinghelper.com).
+Discord bot for querying setlists for Godspeed You! Black Emperor and related bands, powered by [gyberecordinghelper.com](https://gyberecordinghelper.com).
 
 ## Commands
 
@@ -18,10 +18,10 @@ Find shows containing selected songs. Supports all song finder modes from the we
 Browse all canonical song names with optional substring search.
 
 ### `/setlist`
-Look up a show by date (`YYYY-MM-DD`).
+Look up a show by date (`YYYY-MM-DD`). Optionally select a band (autocomplete).
 
 ### `/random`
-Get a random show. Optionally restrict to shows with recordings.
+Get a random show. Optionally restrict to shows with recordings, and select a band (autocomplete).
 
 ## Setup
 
@@ -49,4 +49,4 @@ Get a random show. Optionally restrict to shows with recordings.
 
 ## Data
 
-Setlist data is fetched from `https://gyberecordinghelper.com/setlists.json` and cached in memory for 6 hours.
+The band list is fetched from `https://gyberecordinghelper.com/bands.json` and cached in memory for 6 hours. Setlist data for each band is fetched on demand and cached separately. New bands added to the data source appear automatically in autocomplete with no code changes or redeployment needed.
