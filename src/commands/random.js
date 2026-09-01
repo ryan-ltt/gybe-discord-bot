@@ -48,10 +48,12 @@ export async function execute(interaction) {
   if (recordings) lines.push(recordings);
   if (show.note) lines.push(`*${show.note}*`);
 
+  const description = lines.join('\n').trim().slice(0, 4096) || null;
+
   const embed = new EmbedBuilder()
     .setColor(0x4a90d9)
     .setTitle(`${show.date}  ·  ${show.venue}`)
-    .setDescription(lines.join('\n').slice(0, 4096));
+    .setDescription(description);
   if (bandName) embed.setAuthor({ name: bandName });
 
   await interaction.editReply({ embeds: [embed] });
