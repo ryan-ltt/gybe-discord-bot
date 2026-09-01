@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getSetlists, getBands } from '../data/setlists.js';
+import { getSetlists, getBands, getBestRecordings } from '../data/setlists.js';
 import { formatShow } from '../utils/songFinder.js';
 
 export const data = new SlashCommandBuilder()
@@ -37,7 +37,11 @@ export async function execute(interaction) {
     return;
   }
 
-  const [shows, bands] = await Promise.all([getSetlists(band), getBands()]);
+  const [shows, bands, bestRecordings] = await Promise.all([
+    getSetlists(band),
+    getBands(),
+    getBestRecordings(),
+  ]);
   const bandName = band !== 'gybe' ? bands.find(b => b.slug === band)?.name : null;
   const matching = shows.filter(s => s.date === date || s.date.startsWith(date));
 
@@ -52,7 +56,7 @@ export async function execute(interaction) {
   }
 
   const embeds = matching.map(show => {
-    const { setlist, recordings } = formatShow(show);
+    const { setlist, recordings } = formatShow(show, null, bestRecordings[show.date]);
     const lines = [setlist];
     if (recordings) lines.push(`\n${recordings}`);
     if (show.note) lines.push(`*${show.note}*`);

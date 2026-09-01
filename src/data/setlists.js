@@ -29,6 +29,29 @@ export async function getSetlists(slug = 'gybe') {
   return data;
 }
 
+let bestRecordingsCache = null;
+let bestRecordingsCacheTime = 0;
+
+/**
+ * Map of show date → the archive.org id of the best recording for that show.
+ * Best-recording data is a nicety, so a failed fetch degrades to an empty map
+ * rather than taking down the command that asked for it.
+ */
+export async function getBestRecordings() {
+  if (bestRecordingsCache && Date.now() - bestRecordingsCacheTime < TTL) return bestRecordingsCache;
+  try {
+    const res = await fetch(`${BASE_URL}/best-recordings.json`);
+    if (!res.ok) throw new Error(`Failed to fetch best recordings: ${res.status}`);
+    bestRecordingsCache = await res.json();
+    bestRecordingsCacheTime = Date.now();
+  } catch (err) {
+    console.error('best-recordings.json unavailable, continuing without highlights:', err.message);
+    bestRecordingsCache = bestRecordingsCache || {};
+    bestRecordingsCacheTime = Date.now();
+  }
+  return bestRecordingsCache;
+}
+
 export async function getCanonicalSongs() {
   return CANONICAL_SONGS;
 }

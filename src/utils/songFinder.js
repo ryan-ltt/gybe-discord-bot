@@ -64,8 +64,10 @@ function matchesBackToBack(show, query) {
 /**
  * Format a single show into lines for an embed field.
  * Returns { header, setlist, recordings } strings.
+ * bestRecordingId bolds the matching recording link, matching how
+ * gyberecordinghelper.com marks the best recording for a show.
  */
-export function formatShow(show, highlightSet = null) {
+export function formatShow(show, highlightSet = null, bestRecordingId = null) {
   const setlistParts = (show.songs || []).map(raw => {
     const canon = normalizeSong(raw);
     if (highlightSet && canon && highlightSet.has(canon)) {
@@ -77,7 +79,10 @@ export function formatShow(show, highlightSet = null) {
   const setlist = setlistParts.join('\n');
 
   const recLinks = (show.recordings || [])
-    .map((r, i) => `[[${i + 1}]](${r.url})`)
+    .map((r, i) => {
+      const link = `[[${i + 1}]](${r.url})`;
+      return bestRecordingId && r.id === bestRecordingId ? `**${link}**` : link;
+    })
     .join(' ');
   const recordings = recLinks ? `recordings: ${recLinks}` : '';
 

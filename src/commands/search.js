@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getSetlists, getCanonicalSongs, normalizeSong } from '../data/setlists.js';
+import { getSetlists, getCanonicalSongs, normalizeSong, getBestRecordings } from '../data/setlists.js';
 
 export const data = new SlashCommandBuilder()
   .setName('search')
@@ -31,7 +31,7 @@ export async function execute(interaction) {
     return;
   }
 
-  const shows = await getSetlists();
+  const [shows, bestRecordings] = await Promise.all([getSetlists(), getBestRecordings()]);
 
   // Find all shows containing the song, sorted by date descending
   const matching = shows
@@ -47,8 +47,12 @@ export async function execute(interaction) {
   const first = matching[matching.length - 1];
 
   const formatShow = (show) => {
+    const bestId = bestRecordings[show.date];
     const recLinks = (show.recordings || [])
-      .map((r, i) => `[[${i + 1}]](${r.url})`)
+      .map((r, i) => {
+        const link = `[[${i + 1}]](${r.url})`;
+        return bestId && r.id === bestId ? `**${link}**` : link;
+      })
       .join(' ');
     return `**${show.date}**  ·  ${show.venue}` +
       (recLinks ? `\nrecordings: ${recLinks}` : '') +

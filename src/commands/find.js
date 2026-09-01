@@ -5,7 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from 'discord.js';
-import { getSetlists, getCanonicalSongs, normalizeSong } from '../data/setlists.js';
+import { getSetlists, getCanonicalSongs, normalizeSong, getBestRecordings } from '../data/setlists.js';
 import { findShows, formatShow, paginateResults } from '../utils/songFinder.js';
 
 export const data = new SlashCommandBuilder()
@@ -79,7 +79,7 @@ export async function execute(interaction) {
   const order = interaction.options.getString('order') || 'unordered';
   const recordingsOnly = interaction.options.getBoolean('recordings_only') || false;
 
-  const shows = await getSetlists();
+  const [shows, bestRecordings] = await Promise.all([getSetlists(), getBestRecordings()]);
   const results = findShows(shows, songArgs, mode, order, recordingsOnly);
 
   if (results.length === 0) {
@@ -88,7 +88,7 @@ export async function execute(interaction) {
   }
 
   const highlightSet = new Set(songArgs);
-  const embed = buildEmbed(results, songArgs, highlightSet, mode, order, 0);
+  const embed = buildEmbed(results, songArgs, highlightSet, mode, order, 0, bestRecordings);
   const { totalPages } = paginateResults(results, 0);
 
   const components = totalPages > 1
@@ -108,11 +108,11 @@ export async function handleButton(interaction, parts) {
   const highlightSet = new Set(songArgs);
 
   await interaction.deferUpdate();
-  const shows = await getSetlists();
+  const [shows, bestRecordings] = await Promise.all([getSetlists(), getBestRecordings()]);
   const results = findShows(shows, songArgs, mode, order, recordingsOnly);
   const { totalPages } = paginateResults(results, page);
 
-  const embed = buildEmbed(results, songArgs, highlightSet, mode, order, page);
+  const embed = buildEmbed(results, songArgs, highlightSet, mode, order, page, bestRecordings);
   const components = totalPages > 1
     ? [buildRow(page, totalPages, songArgs, mode, order, recordingsOnly)]
     : [];
@@ -120,7 +120,7 @@ export async function handleButton(interaction, parts) {
   await interaction.editReply({ embeds: [embed], components });
 }
 
-function buildEmbed(results, songArgs, highlightSet, mode, order, page) {
+function buildEmbed(results, songArgs, highlightSet, mode, order, page, bestRecordings = {}) {
   const { slice, totalPages, page: currentPage } = paginateResults(results, page);
 
   const embed = new EmbedBuilder()
@@ -133,7 +133,7 @@ function buildEmbed(results, songArgs, highlightSet, mode, order, page) {
     );
 
   for (const show of slice) {
-    const { setlist, recordings } = formatShow(show, highlightSet);
+    const { setlist, recordings } = formatShow(show, highlightSet, bestRecordings[show.date]);
     const scoreLabel = show.score != null ? ` (${show.score}/${songArgs.length})` : '';
     const fieldValue = [setlist, recordings, show.note].filter(Boolean).join('\n');
     embed.addFields({
