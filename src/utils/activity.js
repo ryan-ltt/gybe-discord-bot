@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { ChannelType, PermissionFlagsBits } from 'discord.js';
+import { ChannelType, PermissionFlagsBits, SnowflakeUtil } from 'discord.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ACTIVITY_FILE = join(__dirname, '../data/activity.json');
@@ -85,7 +85,16 @@ async function backfill(guild) {
     console.log(`[activity] Skipping ${skipped.map(ch => `#${ch.name}`).join(', ')}`);
   }
 
-  for (const channel of channels.values()) {
+  // A message id encodes when it was sent, so channels whose latest message is
+  // older than the window (archives, dead channels) can be skipped without a fetch.
+  const [recent, idle] = channels.partition(ch =>
+    ch.lastMessageId != null && SnowflakeUtil.timestampFrom(ch.lastMessageId) >= cutoff,
+  );
+  if (idle.size > 0) {
+    console.log(`[activity] Skipping ${idle.size} channels with no messages in the last 7 days`);
+  }
+
+  for (const channel of recent.values()) {
     let before;
     let read = 0;
     const authors = new Set();
