@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, Events, Collection } from 'discord.js';
+import { Client, GatewayIntentBits, Events, Collection, Options } from 'discord.js';
 import cron from 'node-cron';
 import * as find from './commands/find.js';
 import * as songs from './commands/songs.js';
@@ -27,8 +27,13 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
   ],
+  // Messages are only used for the daily-target reaction, which works off the
+  // event payload, so don't keep the default 200 per channel in memory.
+  makeCache: Options.cacheWithLimits({
+    ...Options.DefaultMakeCacheSettings,
+    MessageManager: 0,
+  }),
 });
 
 let todaysTargetId = null;
