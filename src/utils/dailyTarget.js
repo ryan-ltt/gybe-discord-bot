@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { getActiveUserIds } from './activity.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TARGET_FILE = join(__dirname, '../data/dailyTarget.json');
@@ -24,10 +25,13 @@ function save(data) {
 export async function pickNewTarget(guild) {
   await guild.members.fetch();
   const members = guild.members.cache.filter(m => !m.user.bot);
-  const chosen = members.random();
+  // Prefer people who've posted in the last week; fall back to anyone if it's been dead
+  const activeIds = getActiveUserIds();
+  const active = members.filter(m => activeIds.has(m.id));
+  const chosen = (active.size > 0 ? active : members).random();
   const data = { userId: chosen.id, date: getTorontoDate() };
   save(data);
-  console.log(`[dailyTarget] New target: ${chosen.user.tag} (${chosen.id})`);
+  console.log(`[dailyTarget] New target: ${chosen.user.tag} (${chosen.id}) from ${active.size > 0 ? `${active.size} active` : `all ${members.size}`} members`);
   return chosen.id;
 }
 

@@ -9,6 +9,7 @@ import * as countdown from './commands/countdown.js';
 import * as seen from './commands/search.js';
 import * as next from './commands/next.js';
 import { getTodaysTarget, pickNewTarget } from './utils/dailyTarget.js';
+import { initActivity, recordActivity } from './utils/activity.js';
 
 const CLUELESS_EMOJI = '537217074745966593';
 
@@ -42,6 +43,7 @@ client.once(Events.ClientReady, async c => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
 
   const guild = await client.guilds.fetch(process.env.HOME_GUILD_ID);
+  await initActivity(guild);
   todaysTargetId = await getTodaysTarget(guild);
 
   // Reset daily at midnight Toronto time (America/Toronto handles EST/EDT automatically)
@@ -52,6 +54,7 @@ client.once(Events.ClientReady, async c => {
 
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
+  if (message.guildId === process.env.HOME_GUILD_ID) recordActivity(message.author.id);
   if (message.author.id !== todaysTargetId) return;
 
   try {
