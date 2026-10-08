@@ -58,7 +58,7 @@ function profileEmbed(interaction, user, period, emoji) {
   ];
   if (p.bestStreak > 1) lines.push(`**Longest streak:** clued ${p.bestStreak} days in a row`);
   if (p.top) {
-    lines.push(`**Most clueless message:** [${p.top.count} × in <#${p.top.channelId}>](${messageLink(interaction.guildId, p.top.channelId, p.top.messageId)})`);
+    lines.push(`**Most clueless message:** [${p.top.count} ×](${messageLink(interaction.guildId, p.top.channelId, p.top.messageId)}) in <#${p.top.channelId}>`);
   }
 
   return embed
@@ -81,7 +81,7 @@ function statsEmbed(interaction, period, emoji) {
   }
 
   const topMessages = stats.messages.map(({ messageId, channelId, authorId, count }, i) =>
-    `${i + 1}. [${count} × in <#${channelId}>](${messageLink(interaction.guildId, channelId, messageId)}) by <@${authorId}>`,
+    `${i + 1}. [${count} ×](${messageLink(interaction.guildId, channelId, messageId)}) in <#${channelId}> by <@${authorId}>`,
   ).join('\n');
 
   return embed
