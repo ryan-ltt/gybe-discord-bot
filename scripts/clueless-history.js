@@ -51,7 +51,8 @@ async function reactors(channelId, messageId, emoji, type) {
   }
 }
 
-async function scan(channel) {
+async function scan(channel, label) {
+  console.log(`${label} #${channel.name}: scanning...`);
   let before;
   let read = 0;
   let found = 0;
@@ -59,6 +60,9 @@ async function scan(channel) {
     const query = new URLSearchParams({ limit: '100', ...(before && { before }) });
     const batch = await rest.get(Routes.channelMessages(channel.id), { query });
     read += batch.length;
+    if (batch.length === 100 && read % 1000 === 0) {
+      console.log(`${label} #${channel.name}: ${read} messages read, ${found} clueless so far`);
+    }
     for (const msg of batch) {
       const reaction = msg.reactions?.find(r => r.emoji.id === CLUELESS_EMOJI);
       if (!reaction || msg.author.bot) continue;
@@ -74,7 +78,7 @@ async function scan(channel) {
     if (batch.length < 100) break;
     before = batch.at(-1).id;
   }
-  console.log(`#${channel.name}: ${read} messages read, ${found} clueless`);
+  console.log(`${label} #${channel.name}: done, ${read} messages read, ${found} clueless`);
 }
 
 async function main() {
@@ -96,12 +100,13 @@ async function main() {
   }
 
   console.log(`Scanning ${targets.length} channels and threads...`);
-  for (const channel of targets) {
+  for (const [i, channel] of targets.entries()) {
+    const label = `[${i + 1}/${targets.length}]`;
     try {
-      await scan(channel);
+      await scan(channel, label);
     } catch (err) {
       // Usually Missing Access: the bot can't read this channel
-      console.log(`Skipping #${channel.name}: ${err.message}`);
+      console.log(`${label} #${channel.name}: skipped, ${err.message}`);
     }
   }
 
