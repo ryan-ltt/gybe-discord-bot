@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { CLUELESS_EMOJI, getStats, getProfile } from '../utils/clueless.js';
+import { CLUELESS_EMOJI, MIN_RATE_MESSAGES, getStats, getProfile } from '../utils/clueless.js';
 
 const TIMEZONE = 'America/Toronto';
 
@@ -34,6 +34,13 @@ function leaderboard(rows) {
   return rows.map(([id, count], i) => `${i + 1}. <@${id}> — ${count}`).join('\n');
 }
 
+function rateBoard(rows) {
+  if (rows.length === 0) return 'Message counts are still loading';
+  return rows.map(([id, perHundred, sent], i) =>
+    `${i + 1}. <@${id}> — ${perHundred.toFixed(1)} (${sent.toLocaleString('en-US')} msgs)`,
+  ).join('\n');
+}
+
 function messageLink(guildId, channelId, messageId) {
   return `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
 }
@@ -56,6 +63,10 @@ function profileEmbed(interaction, user, period, emoji) {
       (p.rank ? ` (avg ${(p.received / p.cluedMessages).toFixed(2)}, rank #${p.rank})` : ''),
     `**Given:** ${p.given}` + (p.selfClues ? ` (${p.selfClues} on their own messages)` : ''),
   ];
+  if (p.rate) {
+    const rank = p.rate.rank ? `, rank #${p.rate.rank} of ${p.rate.of}` : '';
+    lines.push(`**Clueless rate:** ${p.rate.perHundred.toFixed(1)} per 100 messages (${p.rate.sent.toLocaleString('en-US')} sent${rank})`);
+  }
   if (p.bestStreak > 1) lines.push(`**Longest streak:** clued ${p.bestStreak} days in a row`);
   if (p.top) {
     lines.push(`**Most clueless message:** [${p.top.count} ×](${messageLink(interaction.guildId, p.top.channelId, p.top.messageId)}) in <#${p.top.channelId}>`);
@@ -84,13 +95,20 @@ function statsEmbed(interaction, period, emoji) {
     `${i + 1}. [${count} ×](${messageLink(interaction.guildId, channelId, messageId)}) in <#${channelId}> by <@${authorId}>`,
   ).join('\n');
 
-  return embed
+  embed
     .setDescription(`${stats.total} clueless reactions`)
     .addFields(
       { name: 'Most clueless (received)', value: leaderboard(stats.received), inline: true },
       { name: 'Clues given', value: leaderboard(stats.given), inline: true },
-      { name: 'Most clueless messages', value: topMessages },
     );
+  // Message counts are all time, so rates only fit the all-time board
+  if (period === 'all') {
+    embed.addFields({
+      name: `Clueless rate (reacts per 100 messages, ${MIN_RATE_MESSAGES.toLocaleString('en-US')}+ sent)`,
+      value: rateBoard(stats.rates),
+    });
+  }
+  return embed.addFields({ name: 'Most clueless messages', value: topMessages });
 }
 
 export async function execute(interaction) {

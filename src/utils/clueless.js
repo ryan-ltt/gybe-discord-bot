@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { SnowflakeUtil } from 'discord.js';
+import { getMessageCount } from './messageCounts.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +17,8 @@ export const HISTORY_FILE = join(__dirname, '../data/clueless-history.json');
 
 const SAVE_INTERVAL_MS = 5 * 60 * 1000;
 const TIMEZONE = 'America/Toronto';
+// Fewer messages than this and one lucky post skews the clueless rate
+export const MIN_RATE_MESSAGES = 1000;
 
 // messageId → { c: channelId, a: authorId, r: [reactor ids] }. A message id
 // encodes when it was sent, so no timestamps are stored.
@@ -133,6 +136,25 @@ function topCounts(counts, limit) {
 }
 
 /**
+ * [userId, reacts per 100 messages sent, messages sent] for everyone with a
+ * known message count of at least MIN_RATE_MESSAGES, highest rate first.
+ * Message counts are all time, so this only makes sense for 'all'.
+ */
+function rates(received) {
+  const rows = [];
+  for (const [id, reacts] of received) {
+    const sent = getMessageCount(id);
+    if (sent >= MIN_RATE_MESSAGES) rows.push([id, (100 * reacts) / sent, sent]);
+  }
+  return rows.sort((a, b) => b[1] - a[1]);
+}
+
+/** Everyone who has been clued, for refreshing message counts. */
+export function getCluedAuthors() {
+  return new Set(Object.values(messages).map(m => m.a));
+}
+
+/**
  * Yields [messageId, entry, sentDate] for messages sent in 'month', 'year' or
  * 'all'. Messages count toward the period they were sent in.
  */
@@ -165,6 +187,7 @@ export function getStats(period, limit = 10) {
     received: topCounts(received, limit),
     given: topCounts(given, limit),
     messages: top.sort((x, y) => y.count - x.count).slice(0, 5),
+    rates: period === 'all' ? rates(received).slice(0, limit) : [],
   };
 }
 
@@ -211,6 +234,18 @@ export function getProfile(userId, period, limit = 5) {
   }
 
   const receivedCount = received.get(userId) ?? 0;
+  const sent = getMessageCount(userId);
+  let rate = null;
+  if (period === 'all' && sent) {
+    const board = rates(received);
+    const index = board.findIndex(([id]) => id === userId);
+    rate = {
+      perHundred: (100 * receivedCount) / sent,
+      sent,
+      rank: index === -1 ? null : index + 1, // unranked under MIN_RATE_MESSAGES
+      of: board.length,
+    };
+  }
   return {
     received: receivedCount,
     rank: receivedCount ? [...received.values()].filter(n => n > receivedCount).length + 1 : null,
@@ -221,5 +256,6 @@ export function getProfile(userId, period, limit = 5) {
     fans: topCounts(fans, limit),
     targets: topCounts(targets, limit),
     top,
+    rate,
   };
 }

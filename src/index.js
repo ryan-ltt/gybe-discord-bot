@@ -11,7 +11,8 @@ import * as next from './commands/next.js';
 import * as clueless from './commands/clueless.js';
 import { getTodaysTarget, pickNewTarget } from './utils/dailyTarget.js';
 import { initActivity, recordActivity, saveActivity } from './utils/activity.js';
-import { CLUELESS_EMOJI, loadClueless, saveClueless, handleRawPacket } from './utils/clueless.js';
+import { CLUELESS_EMOJI, loadClueless, saveClueless, handleRawPacket, getCluedAuthors } from './utils/clueless.js';
+import { loadMessageCounts, saveMessageCounts, recordMessage, refreshMessageCounts } from './utils/messageCounts.js';
 
 const commands = new Collection([
   ['find', find],
@@ -42,10 +43,12 @@ const client = new Client({
 let todaysTargetId = null;
 
 loadClueless();
+loadMessageCounts();
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {
     saveActivity();
     saveClueless();
+    saveMessageCounts();
     process.exit(0);
   });
 }
@@ -61,11 +64,22 @@ client.once(Events.ClientReady, async c => {
   cron.schedule('0 0 * * *', async () => {
     todaysTargetId = await pickNewTarget(guild);
   }, { timezone: 'America/Toronto' });
+
+  // Message totals for clueless rates come from search, which is slow, so it
+  // runs in the background: now for anyone missing, then nightly for anyone
+  // clued since or not checked in a week
+  const refreshCounts = () => refreshMessageCounts(client, guild.id, getCluedAuthors())
+    .catch(err => console.error('[messageCounts] Refresh failed:', err.message));
+  refreshCounts();
+  cron.schedule('0 4 * * *', refreshCounts, { timezone: 'America/Toronto' });
 });
 
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
-  if (message.guildId === process.env.HOME_GUILD_ID) recordActivity(message.author.id);
+  if (message.guildId === process.env.HOME_GUILD_ID) {
+    recordActivity(message.author.id);
+    recordMessage(message.author.id);
+  }
   if (message.author.id !== todaysTargetId) return;
 
   try {
