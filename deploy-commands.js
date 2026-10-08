@@ -7,8 +7,9 @@ import * as random from './src/commands/random.js';
 import * as countdown from './src/commands/countdown.js';
 import * as seen from './src/commands/search.js';
 import * as next from './src/commands/next.js';
+import * as clueless from './src/commands/clueless.js';
 
-const commands = [find, songs, setlist, random, countdown, seen, next].map(c => c.data.toJSON());
+const commands = [find, songs, setlist, random, countdown, seen, next, clueless].map(c => c.data.toJSON());
 
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 

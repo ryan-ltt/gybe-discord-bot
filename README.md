@@ -23,6 +23,17 @@ Look up a show by date (`YYYY-MM-DD`). Optionally select a band (autocomplete).
 ### `/random`
 Get a random show. Optionally restrict to shows with recordings, and select a band (autocomplete).
 
+### `/clueless`
+Clueless reaction leaderboards: who received the most, who gave the most, and the most-reacted messages. Choose `This month` (default), `This year` or `All time`. Messages count toward the month they were sent in. Reactions from bots, and on bots' messages, aren't counted.
+
+The bot records Clueless reactions as they happen. To include older ones, run the one-off history scan on your own PC, then commit and push the file it writes (`src/data/clueless-history.json`):
+```
+npm run clueless-history
+```
+It only uses the REST API, so the bot can stay online while it runs. The bot merges each new scan into its live stats once, so it doesn't matter whether you deploy first or scan first.
+
+Live stats are saved to `clueless.json` in `DATA_DIR` (default `src/data`). On Railway, mount a volume and set `DATA_DIR` to its path, or stats from after the last scan are lost on each redeploy.
+
 ## Setup
 
 1. Copy `.env.example` to `.env` and fill in your values:
