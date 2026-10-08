@@ -121,8 +121,11 @@ export async function handleRawPacket(packet, client) {
   }
 }
 
+// One shared formatter: building one per call is ~10x slower over every message
+const dateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE });
+
 function torontoDate(timestamp) {
-  return new Date(timestamp).toLocaleDateString('en-CA', { timeZone: TIMEZONE }); // YYYY-MM-DD
+  return dateFormat.format(timestamp); // YYYY-MM-DD
 }
 
 function topCounts(counts, limit) {
@@ -130,21 +133,27 @@ function topCounts(counts, limit) {
 }
 
 /**
- * Leaderboards for 'month', 'year' or 'all'. Messages count toward the period
- * they were sent in.
+ * Yields [messageId, entry, sentDate] for messages sent in 'month', 'year' or
+ * 'all'. Messages count toward the period they were sent in.
  */
-export function getStats(period, limit = 10) {
+function* messagesIn(period) {
   const prefixLength = { month: 7, year: 4, all: 0 }[period];
   const current = torontoDate(Date.now()).slice(0, prefixLength);
 
+  for (const [messageId, entry] of Object.entries(messages)) {
+    const date = torontoDate(SnowflakeUtil.timestampFrom(messageId));
+    if (date.slice(0, prefixLength) === current) yield [messageId, entry, date];
+  }
+}
+
+/** Leaderboards for 'month', 'year' or 'all'. */
+export function getStats(period, limit = 10) {
   const received = new Map();
   const given = new Map();
   const top = [];
   let total = 0;
 
-  for (const [messageId, { c, a, r }] of Object.entries(messages)) {
-    const sent = SnowflakeUtil.timestampFrom(messageId);
-    if (torontoDate(sent).slice(0, prefixLength) !== current) continue;
+  for (const [messageId, { c, a, r }] of messagesIn(period)) {
     total += r.length;
     received.set(a, (received.get(a) ?? 0) + r.length);
     for (const id of r) given.set(id, (given.get(id) ?? 0) + 1);
@@ -156,5 +165,61 @@ export function getStats(period, limit = 10) {
     received: topCounts(received, limit),
     given: topCounts(given, limit),
     messages: top.sort((x, y) => y.count - x.count).slice(0, 5),
+  };
+}
+
+// Most consecutive days in a set of YYYY-MM-DD dates
+function longestStreak(days) {
+  let best = 0;
+  let current = 0;
+  let previous = null;
+  for (const day of [...days].sort()) {
+    const ms = Date.parse(day); // parsed as UTC midnight, so DST can't skew the gap
+    current = previous !== null && ms - previous === 86_400_000 ? current + 1 : 1;
+    best = Math.max(best, current);
+    previous = ms;
+  }
+  return best;
+}
+
+/** One person's clueless stats for 'month', 'year' or 'all'. */
+export function getProfile(userId, period, limit = 5) {
+  const received = new Map(); // everyone's, to rank the user
+  const fans = new Map();
+  const targets = new Map();
+  const days = new Set();
+  let cluedMessages = 0;
+  let given = 0;
+  let selfClues = 0;
+  let top = null;
+
+  for (const [messageId, { c, a, r }, date] of messagesIn(period)) {
+    received.set(a, (received.get(a) ?? 0) + r.length);
+
+    if (a === userId) {
+      cluedMessages++;
+      days.add(date);
+      if (!top || r.length > top.count) top = { messageId, channelId: c, count: r.length };
+      for (const id of r) if (id !== userId) fans.set(id, (fans.get(id) ?? 0) + 1);
+    }
+
+    if (r.includes(userId)) {
+      given++;
+      if (a === userId) selfClues++;
+      else targets.set(a, (targets.get(a) ?? 0) + 1);
+    }
+  }
+
+  const receivedCount = received.get(userId) ?? 0;
+  return {
+    received: receivedCount,
+    rank: receivedCount ? [...received.values()].filter(n => n > receivedCount).length + 1 : null,
+    cluedMessages,
+    given,
+    selfClues,
+    bestStreak: longestStreak(days),
+    fans: topCounts(fans, limit),
+    targets: topCounts(targets, limit),
+    top,
   };
 }
