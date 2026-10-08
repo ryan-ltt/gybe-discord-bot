@@ -8,10 +8,10 @@ import * as random from './commands/random.js';
 import * as countdown from './commands/countdown.js';
 import * as seen from './commands/search.js';
 import * as next from './commands/next.js';
+import * as clueless from './commands/clueless.js';
 import { getTodaysTarget, pickNewTarget } from './utils/dailyTarget.js';
-import { initActivity, recordActivity } from './utils/activity.js';
-
-const CLUELESS_EMOJI = '537217074745966593';
+import { initActivity, recordActivity, saveActivity } from './utils/activity.js';
+import { CLUELESS_EMOJI, loadClueless, saveClueless, handleRawPacket } from './utils/clueless.js';
 
 const commands = new Collection([
   ['find', find],
@@ -21,6 +21,7 @@ const commands = new Collection([
   ['countdown', countdown],
   ['search', seen],
   ['next', next],
+  ['clueless', clueless],
 ]);
 
 const client = new Client({
@@ -28,9 +29,10 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
   ],
-  // Messages are only used for the daily-target reaction, which works off the
-  // event payload, so don't keep the default 200 per channel in memory.
+  // Messages are only used for the daily-target reaction and clueless stats,
+  // which work off event payloads, so don't keep the default 200 per channel in memory.
   makeCache: Options.cacheWithLimits({
     ...Options.DefaultMakeCacheSettings,
     MessageManager: 0,
@@ -38,6 +40,15 @@ const client = new Client({
 });
 
 let todaysTargetId = null;
+
+loadClueless();
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    saveActivity();
+    saveClueless();
+    process.exit(0);
+  });
+}
 
 client.once(Events.ClientReady, async c => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
@@ -62,6 +73,11 @@ client.on(Events.MessageCreate, async message => {
   } catch (err) {
     console.error('[dailyTarget] Failed to react:', err.message);
   }
+});
+
+// Reaction events for uncached messages only arrive raw (see utils/clueless.js)
+client.on(Events.Raw, packet => {
+  handleRawPacket(packet, client).catch(err => console.error('[clueless] Failed to record reaction:', err.message));
 });
 
 client.on(Events.InteractionCreate, async interaction => {

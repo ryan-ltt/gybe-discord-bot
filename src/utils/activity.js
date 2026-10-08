@@ -130,10 +130,4 @@ export async function initActivity(guild) {
   console.log(`[activity] ${lastSeen.size} members active in the last 7 days`);
 
   setInterval(saveActivity, SAVE_INTERVAL_MS).unref();
-  for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.once(signal, () => {
-      saveActivity();
-      process.exit(0);
-    });
-  }
 }
