@@ -42,6 +42,14 @@ const client = new Client({
 
 let todaysTargetId = null;
 
+// Railway's graph counts the whole container; this shows what the process itself holds
+function logMemory() {
+  const mb = n => Math.round(n / 1048576);
+  const m = process.memoryUsage();
+  console.log(`[memory] rss ${mb(m.rss)}MB, heap ${mb(m.heapUsed)}/${mb(m.heapTotal)}MB, external ${mb(m.external)}MB`);
+}
+setInterval(logMemory, 30 * 60 * 1000).unref();
+
 loadClueless();
 loadMessageCounts();
 for (const signal of ['SIGINT', 'SIGTERM']) {
@@ -55,6 +63,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 
 client.once(Events.ClientReady, async c => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
+  logMemory();
 
   const guild = await client.guilds.fetch(process.env.HOME_GUILD_ID);
   await initActivity(guild);
