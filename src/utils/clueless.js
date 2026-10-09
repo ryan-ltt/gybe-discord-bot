@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, openSync, readSync, closeSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { SnowflakeUtil } from 'discord.js';
@@ -35,12 +35,30 @@ function readJson(file) {
   }
 }
 
+// The scan writes scannedAt first, so it can be checked without parsing the
+// whole multi-MB file (which briefly costs ~30MB) on every start
+function readScannedAt(file) {
+  try {
+    const buffer = Buffer.alloc(128);
+    const fd = openSync(file, 'r');
+    try {
+      readSync(fd, buffer, 0, buffer.length, 0);
+    } finally {
+      closeSync(fd);
+    }
+    return buffer.toString('utf8').match(/^\{"scannedAt":"([^"]+)"/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function loadClueless() {
   const live = readJson(STATS_FILE);
   messages = live?.messages ?? {};
   historyScannedAt = live?.historyScannedAt ?? null;
 
-  const history = readJson(HISTORY_FILE);
+  const scannedAt = readScannedAt(HISTORY_FILE);
+  const history = scannedAt && scannedAt === historyScannedAt ? null : readJson(HISTORY_FILE);
   if (history && history.scannedAt !== historyScannedAt) {
     // Union with what's live: the scan can't know about reactions since it ran
     for (const [id, { c, a, r }] of Object.entries(history.messages)) {

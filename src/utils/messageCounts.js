@@ -52,7 +52,8 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function searchCount(client, guildId, userId) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const result = await client.rest.get(`/guilds/${guildId}/messages/search`, {
-      query: new URLSearchParams({ author_id: userId }),
+      // Only the total is used; the default 25 matching messages cost ~30KB each call
+      query: new URLSearchParams({ author_id: userId, limit: '1' }),
     });
     if (typeof result.total_results === 'number') return result.total_results;
     // Discord answers 202 with retry_after while it's still indexing

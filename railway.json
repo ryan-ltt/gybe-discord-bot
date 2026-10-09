@@ -1,0 +1,6 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "deploy": {
+    "startCommand": "node --max-old-space-size=64 --max-semi-space-size=1 src/index.js"
+  }
+}
