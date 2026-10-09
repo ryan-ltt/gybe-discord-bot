@@ -41,8 +41,17 @@ function rateBoard(rows) {
   ).join('\n');
 }
 
-function messageLink(guildId, channelId, messageId) {
-  return `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
+// Stats are always the home server's, even when the command is used elsewhere
+function messageLink(channelId, messageId) {
+  return `https://discord.com/channels/${process.env.HOME_GUILD_ID}/${channelId}/${messageId}`;
+}
+
+// authorId is left out on a profile, where every message is the user's own
+function messageList(rows) {
+  return rows.map(({ messageId, channelId, authorId, count }, i) =>
+    `${i + 1}. [${count} ×](${messageLink(channelId, messageId)}) in <#${channelId}>` +
+      (authorId ? ` by <@${authorId}>` : ''),
+  ).join('\n');
 }
 
 function profileEmbed(interaction, user, period, emoji) {
@@ -68,19 +77,20 @@ function profileEmbed(interaction, user, period, emoji) {
     lines.push(`**Clueless rate:** ${p.rate.perHundred.toFixed(1)} per 100 messages (${p.rate.sent.toLocaleString('en-US')} sent${rank})`);
   }
   if (p.bestStreak > 1) lines.push(`**Longest streak:** clued ${p.bestStreak} days in a row`);
-  if (p.top) {
-    lines.push(`**Most clueless message:** [${p.top.count} ×](${messageLink(interaction.guildId, p.top.channelId, p.top.messageId)}) in <#${p.top.channelId}>`);
-  }
 
-  return embed
+  embed
     .setDescription(lines.join('\n'))
     .addFields(
       { name: 'Biggest fans', value: leaderboard(p.fans), inline: true },
       { name: 'Favourite targets', value: leaderboard(p.targets), inline: true },
     );
+  if (p.messages.length) {
+    embed.addFields({ name: 'Most clueless messages', value: messageList(p.messages) });
+  }
+  return embed;
 }
 
-function statsEmbed(interaction, period, emoji) {
+function statsEmbed(period, emoji) {
   const stats = getStats(period);
 
   const embed = new EmbedBuilder()
@@ -90,10 +100,6 @@ function statsEmbed(interaction, period, emoji) {
   if (stats.total === 0) {
     return embed.setDescription('No clueless reactions in this period yet.');
   }
-
-  const topMessages = stats.messages.map(({ messageId, channelId, authorId, count }, i) =>
-    `${i + 1}. [${count} ×](${messageLink(interaction.guildId, channelId, messageId)}) in <#${channelId}> by <@${authorId}>`,
-  ).join('\n');
 
   embed
     .setDescription(`${stats.total} clueless reactions`)
@@ -108,7 +114,7 @@ function statsEmbed(interaction, period, emoji) {
       value: rateBoard(stats.rates),
     });
   }
-  return embed.addFields({ name: 'Most clueless messages', value: topMessages });
+  return embed.addFields({ name: 'Most clueless messages', value: messageList(stats.messages) });
 }
 
 export async function execute(interaction) {
@@ -118,7 +124,7 @@ export async function execute(interaction) {
 
   const embed = user
     ? profileEmbed(interaction, user, period, emoji)
-    : statsEmbed(interaction, period, emoji);
+    : statsEmbed(period, emoji);
 
   // Mentions inside an embed render as names without pinging anyone
   await interaction.reply({ embeds: [embed] });

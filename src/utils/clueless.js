@@ -214,7 +214,7 @@ export function getProfile(userId, period, limit = 5) {
   let cluedMessages = 0;
   let given = 0;
   let selfClues = 0;
-  let top = null;
+  const top = [];
 
   for (const [messageId, { c, a, r }, date] of messagesIn(period)) {
     received.set(a, (received.get(a) ?? 0) + r.length);
@@ -222,7 +222,7 @@ export function getProfile(userId, period, limit = 5) {
     if (a === userId) {
       cluedMessages++;
       days.add(date);
-      if (!top || r.length > top.count) top = { messageId, channelId: c, count: r.length };
+      top.push({ messageId, channelId: c, count: r.length });
       for (const id of r) if (id !== userId) fans.set(id, (fans.get(id) ?? 0) + 1);
     }
 
@@ -255,7 +255,7 @@ export function getProfile(userId, period, limit = 5) {
     bestStreak: longestStreak(days),
     fans: topCounts(fans, limit),
     targets: topCounts(targets, limit),
-    top,
+    messages: top.sort((x, y) => y.count - x.count).slice(0, 5),
     rate,
   };
 }

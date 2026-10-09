@@ -75,11 +75,10 @@ client.once(Events.ClientReady, async c => {
 });
 
 client.on(Events.MessageCreate, async message => {
-  if (message.author.bot) return;
-  if (message.guildId === process.env.HOME_GUILD_ID) {
-    recordActivity(message.author.id);
-    recordMessage(message.author.id);
-  }
+  // The bot is in other servers too, but everything here is home-server only
+  if (message.author.bot || message.guildId !== process.env.HOME_GUILD_ID) return;
+  recordActivity(message.author.id);
+  recordMessage(message.author.id);
   if (message.author.id !== todaysTargetId) return;
 
   try {
