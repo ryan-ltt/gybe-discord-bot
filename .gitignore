@@ -2,3 +2,4 @@
 node_modules/
 src/data/activity.json
 src/data/clueless.json
+src/data/weeklyTarget.json

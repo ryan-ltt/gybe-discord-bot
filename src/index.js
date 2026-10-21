@@ -9,7 +9,7 @@ import * as countdown from './commands/countdown.js';
 import * as seen from './commands/search.js';
 import * as next from './commands/next.js';
 import * as clueless from './commands/clueless.js';
-import { getTodaysTarget, pickNewTarget } from './utils/dailyTarget.js';
+import { getCurrentTarget } from './utils/weeklyTarget.js';
 import { initActivity, recordActivity, saveActivity } from './utils/activity.js';
 import { CLUELESS_EMOJI, loadClueless, saveClueless, handleRawPacket, getCluedAuthors } from './utils/clueless.js';
 import { loadMessageCounts, saveMessageCounts, recordMessage, refreshMessageCounts } from './utils/messageCounts.js';
@@ -32,7 +32,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
   ],
-  // Messages are only used for the daily-target reaction and clueless stats,
+  // Messages are only used for the weekly-target reaction and clueless stats,
   // which work off event payloads, so don't keep the default 200 per channel in memory.
   makeCache: Options.cacheWithLimits({
     ...Options.DefaultMakeCacheSettings,
@@ -40,7 +40,7 @@ const client = new Client({
   }),
 });
 
-let todaysTargetId = null;
+let currentTargetId = null;
 
 // Railway's graph counts the whole container; this shows what the process itself holds
 function logMemory() {
@@ -67,11 +67,12 @@ client.once(Events.ClientReady, async c => {
 
   const guild = await client.guilds.fetch(process.env.HOME_GUILD_ID);
   await initActivity(guild);
-  todaysTargetId = await getTodaysTarget(guild);
+  currentTargetId = await getCurrentTarget(guild);
 
-  // Reset daily at midnight Toronto time (America/Toronto handles EST/EDT automatically)
+  // Check at midnight Toronto time (America/Toronto handles EST/EDT automatically)
+  // whether the target's day is over or a new week's pick is due
   cron.schedule('0 0 * * *', async () => {
-    todaysTargetId = await pickNewTarget(guild);
+    currentTargetId = await getCurrentTarget(guild);
   }, { timezone: 'America/Toronto' });
 
   // Message totals for clueless rates come from search, which is slow, so it
@@ -88,12 +89,12 @@ client.on(Events.MessageCreate, async message => {
   if (message.author.bot || message.guildId !== process.env.HOME_GUILD_ID) return;
   recordActivity(message.author.id);
   recordMessage(message.author.id);
-  if (message.author.id !== todaysTargetId) return;
+  if (message.author.id !== currentTargetId) return;
 
   try {
     await message.react(client.emojis.cache.get(CLUELESS_EMOJI) ?? CLUELESS_EMOJI);
   } catch (err) {
-    console.error('[dailyTarget] Failed to react:', err.message);
+    console.error('[weeklyTarget] Failed to react:', err.message);
   }
 });
 
