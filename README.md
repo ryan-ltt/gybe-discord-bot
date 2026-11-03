@@ -23,6 +23,12 @@ Look up a show by date (`YYYY-MM-DD`). Optionally select a band (autocomplete).
 ### `/random`
 Get a random show. Optionally restrict to shows with recordings, and select a band (autocomplete).
 
+### `/leaderboard`
+Top 10 public gyberecordinghelper.com users by shows attended and by shows listened, the same counts as the site's [users tab](https://gyberecordinghelper.com/#users). Fetched from the site's Supabase and cached for 10 minutes.
+
+### `/heard`
+Look up a show by date (`YYYY-MM-DD`) and list the public gyberecordinghelper.com users who have listened to it, then those who attended it.
+
 ### `/clueless`
 Clueless reaction leaderboards: who received the most, who gave the most, and the most-reacted messages. Choose `This month` (default), `This year` or `All time`. Messages count toward the month they were sent in. Reactions from bots, and on bots' messages, aren't counted.
 

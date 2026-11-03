@@ -8,8 +8,10 @@ import * as countdown from './src/commands/countdown.js';
 import * as seen from './src/commands/search.js';
 import * as next from './src/commands/next.js';
 import * as clueless from './src/commands/clueless.js';
+import * as leaderboard from './src/commands/leaderboard.js';
+import * as heard from './src/commands/heard.js';
 
-const commands = [find, songs, setlist, random, countdown, seen, next, clueless].map(c => c.data.toJSON());
+const commands = [find, songs, setlist, random, countdown, seen, next, clueless, leaderboard, heard].map(c => c.data.toJSON());
 
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 

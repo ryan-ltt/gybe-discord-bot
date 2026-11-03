@@ -9,6 +9,8 @@ import * as countdown from './commands/countdown.js';
 import * as seen from './commands/search.js';
 import * as next from './commands/next.js';
 import * as clueless from './commands/clueless.js';
+import * as leaderboard from './commands/leaderboard.js';
+import * as heard from './commands/heard.js';
 import { getCurrentTarget } from './utils/weeklyTarget.js';
 import { initActivity, recordActivity, saveActivity } from './utils/activity.js';
 import { CLUELESS_EMOJI, loadClueless, saveClueless, handleRawPacket, getCluedAuthors } from './utils/clueless.js';
@@ -23,6 +25,8 @@ const commands = new Collection([
   ['search', seen],
   ['next', next],
   ['clueless', clueless],
+  ['leaderboard', leaderboard],
+  ['heard', heard],
 ]);
 
 const client = new Client({
