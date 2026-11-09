@@ -32,11 +32,12 @@ Look up a show by date (`YYYY-MM-DD`) and list the public gyberecordinghelper.co
 ### `/clueless`
 Clueless reaction leaderboards: who received the most, who gave the most, and the most-reacted messages. Choose `This month` (default), `This year` or `All time`. Messages count toward the month they were sent in. Reactions from bots, and on bots' messages, aren't counted.
 
-The bot records Clueless reactions as they happen. To include older ones, run the one-off history scan on your own PC, then commit and push the file it writes (`src/data/clueless-history.json`):
+The bot records Clueless reactions as they happen. To include ones it missed (e.g. while it was offline), run the history scan on your own PC, then commit and push the file it writes (`src/data/clueless-history.json`):
 ```
-npm run clueless-history
+npm run clueless-history            # messages sent since the last scan
+npm run clueless-history -- --full  # every message (takes many hours)
 ```
-It only uses the REST API, so the bot can stay online while it runs. The bot merges each new scan into its live stats once, so it doesn't matter whether you deploy first or scan first.
+The default scan only reads messages sent after the previous scan's `scannedAt` and keeps the older entries already in the file. It won't pick up new reactions on older messages; use `--full` for that. It only uses the REST API, so the bot can stay online while it runs. The bot merges each new scan into its live stats once, so it doesn't matter whether you deploy first or scan first.
 
 Live stats are saved to `clueless.json` in `DATA_DIR` (default `src/data`). On Railway, mount a volume and set `DATA_DIR` to its path, or stats from after the last scan are lost on each redeploy.
 
